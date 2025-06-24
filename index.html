@@ -1,67 +1,254 @@
 <!DOCTYPE html>
-<html lang="en" class="bg-gradient-to-br from-blue-50 to-blue-100 min-h-screen flex flex-col items-center justify-center transition-colors duration-500">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sign In PWA</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign In App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+      background: #f9f9f9;
+      color: #333;
+    }
+    h1, h2 {
+      color: #4CAF50;
+    }
+    .btn {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      margin: 10px;
+      font-size: 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    .btn:hover,
+    .btn.btn-hover {
+      background: #45a049;
+      transform: scale(1.05);
+    }
+    input[type="text"] {
+      padding: 10px;
+      font-size: 1.1rem;
+      width: 80%;
+      margin: 10px 0;
+      border-radius: 6px;
+      border: 2px solid #ccc;
+      transition: border-color 0.3s ease;
+    }
+    input[type="text"]:focus {
+      border-color: #4CAF50;
+      outline: none;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+      max-width: 400px;
+      margin: 0 auto 20px auto;
+    }
+    li.signout-user {
+      background: #f0f0f0;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    li.signout-user:hover {
+      background: #d1e7dd;
+    }
+  </style>
 </head>
-<body class="text-gray-800 p-6 w-full max-w-md opacity-0 transition-opacity duration-700">
+<body>
+  <div id="main"></div>
 
-  <!-- Dark mode toggle -->
-  <button id="toggleDarkMode" 
-    class="absolute top-6 right-6 bg-gray-800 text-white px-4 py-2 rounded-full shadow hover:bg-gray-900 transform hover:scale-105 transition-all duration-300">
-    🌙 Toggle Dark Mode
-  </button>
-
-  <div class="bg-white dark:bg-gray-800 shadow-2xl rounded-xl p-8 space-y-6 w-full">
-    <h1 class="text-3xl font-bold text-center text-blue-600 dark:text-blue-400">📋 Sign In App</h1>
-
-    <!-- Sign In Form -->
-    <form id="signInForm" class="space-y-4">
-      <input id="signInName" type="text" placeholder="Enter your name"
-        class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white"/>
-      <button type="submit"
-        class="w-full bg-blue-500 text-white font-semibold py-3 rounded-lg shadow hover:bg-blue-600 transform hover:scale-105 transition-all duration-300">
-        ✅ Sign In
-      </button>
-    </form>
-
-    <!-- Sign Out -->
-    <div class="space-y-2">
-      <select id="signOutSelect"
-        class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-        <option value="">Select name to sign out</option>
-      </select>
-      <button id="signOutButton"
-        class="w-full bg-red-500 text-white font-semibold py-3 rounded-lg shadow hover:bg-red-600 transform hover:scale-105 transition-all duration-300">
-        🚪 Sign Out
-      </button>
-    </div>
-
-    <!-- Currently Signed In -->
-    <div>
-      <h2 class="text-xl font-semibold mb-2 dark:text-white">Currently Signed In:</h2>
-      <ul id="signedInList" class="space-y-2"></ul>
-    </div>
-  </div>
-
-  <!-- Toast notification -->
-  <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-500"></div>
-
-  <script src="app.js"></script>
   <script>
-    // Fade in page on load
-    window.addEventListener('load', () => {
-      document.body.classList.remove('opacity-0');
-    });
+    // Replace with your Google Apps Script Web App URL
+    const GOOGLE_SCRIPT_URL = "YOUR_WEB_APP_URL_HERE";
 
-    // Dark mode toggle
-    const toggle = document.getElementById('toggleDarkMode');
-    toggle.addEventListener('click', () => {
-      document.documentElement.classList.toggle('dark');
-    });
+    // Local storage key for current signed-in users
+    const STORAGE_KEY = "signedInUsers";
+
+    // Cached signed-in users in memory (loaded from localStorage)
+    let signedInUsers = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+    // Helper: Save signedInUsers to localStorage
+    function saveSignedInUsers() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(signedInUsers));
+    }
+
+    // Helper: Send sign-in/out event to Google Sheets backend
+    function sendToGoogleSheets(name, action) {
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          action,
+          timestamp: new Date().toISOString(),
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status !== "success") {
+            console.error("Failed to log:", data.message);
+          } else {
+            console.log(`Logged ${action} for ${name} successfully.`);
+          }
+        })
+        .catch((err) => {
+          console.error("Error sending to Google Sheets:", err);
+        });
+    }
+
+    // UI elements
+    const mainDiv = document.getElementById("main");
+
+    // Create buttons with animation class
+    function createButton(text) {
+      const btn = document.createElement("button");
+      btn.textContent = text;
+      btn.className = "btn";
+      btn.addEventListener("mouseover", () => btn.classList.add("btn-hover"));
+      btn.addEventListener("mouseout", () => btn.classList.remove("btn-hover"));
+      return btn;
+    }
+
+    // Render main menu: Sign In | Sign Out | View Signed In
+    function renderMainMenu() {
+      mainDiv.innerHTML = "";
+      const title = document.createElement("h1");
+      title.textContent = "Sign In App";
+      mainDiv.appendChild(title);
+
+      const signInBtn = createButton("Sign In");
+      signInBtn.onclick = renderSignInForm;
+      const signOutBtn = createButton("Sign Out");
+      signOutBtn.onclick = renderSignOutList;
+      const viewBtn = createButton("View Signed In");
+      viewBtn.onclick = renderCurrentlySignedIn;
+
+      mainDiv.appendChild(signInBtn);
+      mainDiv.appendChild(signOutBtn);
+      mainDiv.appendChild(viewBtn);
+    }
+
+    // Render sign-in form
+    function renderSignInForm() {
+      mainDiv.innerHTML = "";
+      const label = document.createElement("label");
+      label.textContent = "Enter your name:";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "Your name";
+
+      const submitBtn = createButton("Sign In");
+      submitBtn.onclick = () => {
+        const name = input.value.trim();
+        if (!name) {
+          alert("Please enter a name.");
+          return;
+        }
+        if (
+          signedInUsers.find(
+            (u) => u.name.toLowerCase() === name.toLowerCase()
+          )
+        ) {
+          alert("You are already signed in.");
+          return;
+        }
+        const newUser = { name, signInTime: new Date().toISOString() };
+        signedInUsers.push(newUser);
+        saveSignedInUsers();
+        sendToGoogleSheets(name, "signIn");
+        alert(`Welcome, ${name}! You are signed in.`);
+        renderMainMenu();
+      };
+
+      const backBtn = createButton("Back");
+      backBtn.onclick = renderMainMenu;
+
+      mainDiv.appendChild(label);
+      mainDiv.appendChild(input);
+      mainDiv.appendChild(submitBtn);
+      mainDiv.appendChild(backBtn);
+
+      input.focus();
+    }
+
+    // Render list of signed-in users to sign out
+    function renderSignOutList() {
+      mainDiv.innerHTML = "";
+      const title = document.createElement("h2");
+      title.textContent = "Select a user to sign out:";
+      mainDiv.appendChild(title);
+
+      if (signedInUsers.length === 0) {
+        const noUsers = document.createElement("p");
+        noUsers.textContent = "No users are currently signed in.";
+        mainDiv.appendChild(noUsers);
+      } else {
+        const ul = document.createElement("ul");
+        signedInUsers.forEach((user, index) => {
+          const li = document.createElement("li");
+          li.textContent = `${user.name} (signed in at ${new Date(
+            user.signInTime
+          ).toLocaleTimeString()})`;
+          li.style.cursor = "pointer";
+          li.className = "signout-user";
+          li.onclick = () => {
+            if (confirm(`Sign out ${user.name}?`)) {
+              signedInUsers.splice(index, 1);
+              saveSignedInUsers();
+              sendToGoogleSheets(user.name, "signOut");
+              alert(`${user.name} has been signed out.`);
+              renderSignOutList();
+            }
+          };
+          ul.appendChild(li);
+        });
+        mainDiv.appendChild(ul);
+      }
+
+      const backBtn = createButton("Back");
+      backBtn.onclick = renderMainMenu;
+      mainDiv.appendChild(backBtn);
+    }
+
+    // Render currently signed-in users list
+    function renderCurrentlySignedIn() {
+      mainDiv.innerHTML = "";
+      const title = document.createElement("h2");
+      title.textContent = "Currently Signed In Users:";
+      mainDiv.appendChild(title);
+
+      if (signedInUsers.length === 0) {
+        const noUsers = document.createElement("p");
+        noUsers.textContent = "No users are currently signed in.";
+        mainDiv.appendChild(noUsers);
+      } else {
+        const ul = document.createElement("ul");
+        signedInUsers.forEach((user) => {
+          const li = document.createElement("li");
+          li.textContent = `${user.name} (signed in at ${new Date(
+            user.signInTime
+          ).toLocaleString()})`;
+          ul.appendChild(li);
+        });
+        mainDiv.appendChild(ul);
+      }
+
+      const backBtn = createButton("Back");
+      backBtn.onclick = renderMainMenu;
+      mainDiv.appendChild(backBtn);
+    }
+
+    // Initialize app on page load
+    renderMainMenu();
   </script>
-
 </body>
 </html>
