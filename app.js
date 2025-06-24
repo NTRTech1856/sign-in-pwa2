@@ -1,119 +1,176 @@
-// ---------------------------
-// CONFIG
-// ---------------------------
+// Replace with your Google Apps Script Web App URL
+const GOOGLE_SCRIPT_URL = "YOUR_WEB_APP_URL_HERE";
 
-const SIGNED_IN_KEY = "signedInPeople";
-const LAST_RESET_KEY = "lastResetDate";
-const RESET_HOUR = 6; // Daily reset hour
+// Local storage key for current signed-in users
+const STORAGE_KEY = "signedInUsers";
 
-// ---------------------------
-// DATA HELPERS
-// ---------------------------
+// Cached signed-in users in memory (loaded from localStorage)
+let signedInUsers = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
-function loadSignedInPeople() {
-  return JSON.parse(localStorage.getItem(SIGNED_IN_KEY)) || [];
+// Helper: Save signedInUsers to localStorage
+function saveSignedInUsers() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(signedInUsers));
 }
 
-function saveSignedInPeople(people) {
-  localStorage.setItem(SIGNED_IN_KEY, JSON.stringify(people));
+// Helper: Send sign-in/out event to Google Sheets backend
+function sendToGoogleSheets(name, action) {
+  fetch(GOOGLE_SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name,
+      action,
+      timestamp: new Date().toISOString(),
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.status !== "success") {
+        console.error("Failed to log:", data.message);
+      } else {
+        console.log(`Logged ${action} for ${name} successfully.`);
+      }
+    })
+    .catch((err) => {
+      console.error("Error sending to Google Sheets:", err);
+    });
 }
 
-function checkTimedReset() {
-  const now = new Date();
-  const today = now.toISOString().split("T")[0];
-  const lastReset = localStorage.getItem(LAST_RESET_KEY);
+// UI elements
+const mainDiv = document.getElementById("main");
 
-  if (lastReset !== today && now.getHours() >= RESET_HOUR) {
-    localStorage.setItem(SIGNED_IN_KEY, JSON.stringify([]));
-    localStorage.setItem(LAST_RESET_KEY, today);
-    console.log(`✅ Timed reset done at ${now.toLocaleTimeString()}`);
+// Create buttons with animation class
+function createButton(text) {
+  const btn = document.createElement("button");
+  btn.textContent = text;
+  btn.className = "btn";
+  btn.addEventListener("mouseover", () => btn.classList.add("btn-hover"));
+  btn.addEventListener("mouseout", () => btn.classList.remove("btn-hover"));
+  return btn;
+}
+
+// Render main menu: Sign In | Sign Out | View Signed In
+function renderMainMenu() {
+  mainDiv.innerHTML = "";
+  const title = document.createElement("h1");
+  title.textContent = "Sign In App";
+  mainDiv.appendChild(title);
+
+  const signInBtn = createButton("Sign In");
+  signInBtn.onclick = renderSignInForm;
+  const signOutBtn = createButton("Sign Out");
+  signOutBtn.onclick = renderSignOutList;
+  const viewBtn = createButton("View Signed In");
+  viewBtn.onclick = renderCurrentlySignedIn;
+
+  mainDiv.appendChild(signInBtn);
+  mainDiv.appendChild(signOutBtn);
+  mainDiv.appendChild(viewBtn);
+}
+
+// Render sign-in form
+function renderSignInForm() {
+  mainDiv.innerHTML = "";
+  const label = document.createElement("label");
+  label.textContent = "Enter your name:";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Your name";
+
+  const submitBtn = createButton("Sign In");
+  submitBtn.onclick = () => {
+    const name = input.value.trim();
+    if (!name) {
+      alert("Please enter a name.");
+      return;
+    }
+    if (signedInUsers.find((u) => u.name.toLowerCase() === name.toLowerCase())) {
+      alert("You are already signed in.");
+      return;
+    }
+    const newUser = { name, signInTime: new Date().toISOString() };
+    signedInUsers.push(newUser);
+    saveSignedInUsers();
+    sendToGoogleSheets(name, "signIn");
+    alert(`Welcome, ${name}! You are signed in.`);
+    renderMainMenu();
+  };
+
+  const backBtn = createButton("Back");
+  backBtn.onclick = renderMainMenu;
+
+  mainDiv.appendChild(label);
+  mainDiv.appendChild(input);
+  mainDiv.appendChild(submitBtn);
+  mainDiv.appendChild(backBtn);
+
+  input.focus();
+}
+
+// Render list of signed-in users to sign out
+function renderSignOutList() {
+  mainDiv.innerHTML = "";
+  const title = document.createElement("h2");
+  title.textContent = "Select a user to sign out:";
+  mainDiv.appendChild(title);
+
+  if (signedInUsers.length === 0) {
+    const noUsers = document.createElement("p");
+    noUsers.textContent = "No users are currently signed in.";
+    mainDiv.appendChild(noUsers);
+  } else {
+    const ul = document.createElement("ul");
+    signedInUsers.forEach((user, index) => {
+      const li = document.createElement("li");
+      li.textContent = `${user.name} (signed in at ${new Date(user.signInTime).toLocaleTimeString()})`;
+      li.style.cursor = "pointer";
+      li.className = "signout-user";
+      li.onclick = () => {
+        if (confirm(`Sign out ${user.name}?`)) {
+          signedInUsers.splice(index, 1);
+          saveSignedInUsers();
+          sendToGoogleSheets(user.name, "signOut");
+          alert(`${user.name} has been signed out.`);
+          renderSignOutList();
+        }
+      };
+      ul.appendChild(li);
+    });
+    mainDiv.appendChild(ul);
   }
+
+  const backBtn = createButton("Back");
+  backBtn.onclick = renderMainMenu;
+  mainDiv.appendChild(backBtn);
 }
 
-checkTimedReset();
+// Render currently signed-in users list
+function renderCurrentlySignedIn() {
+  mainDiv.innerHTML = "";
+  const title = document.createElement("h2");
+  title.textContent = "Currently Signed In Users:";
+  mainDiv.appendChild(title);
 
-// ---------------------------
-// TOAST UTILITY
-// ---------------------------
-
-function showToast(message) {
-  const toast = document.getElementById("toast");
-  toast.textContent = message;
-  toast.classList.remove("opacity-0");
-  toast.classList.add("opacity-100");
-
-  setTimeout(() => {
-    toast.classList.remove("opacity-100");
-    toast.classList.add("opacity-0");
-  }, 2000);
-}
-
-// ---------------------------
-// UI ELEMENTS
-// ---------------------------
-
-const signInForm = document.getElementById("signInForm");
-const signInNameInput = document.getElementById("signInName");
-const signedInList = document.getElementById("signedInList");
-const signOutSelect = document.getElementById("signOutSelect");
-
-// ---------------------------
-// UI HANDLERS
-// ---------------------------
-
-function renderSignedInPeople() {
-  const people = loadSignedInPeople();
-  signedInList.innerHTML = "";
-  signOutSelect.innerHTML = '<option value="">Select name to sign out</option>';
-
-  people.forEach((person, index) => {
-    const li = document.createElement("li");
-    li.textContent = `${person.name} - ${new Date(person.timestamp).toLocaleTimeString()}`;
-    li.className = "bg-white dark:bg-gray-700 p-3 rounded-lg shadow transition-opacity duration-500 opacity-0";
-    signedInList.appendChild(li);
-
-    // Fade in effect
-    setTimeout(() => {
-      li.classList.remove("opacity-0");
-      li.classList.add("opacity-100");
-    }, 10);
-
-    const option = document.createElement("option");
-    option.value = index;
-    option.textContent = person.name;
-    signOutSelect.appendChild(option);
-  });
-}
-
-signInForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const name = signInNameInput.value.trim();
-  if (name === "") return;
-
-  const people = loadSignedInPeople();
-  people.push({
-    name,
-    timestamp: new Date().toISOString(),
-  });
-  saveSignedInPeople(people);
-  signInNameInput.value = "";
-  renderSignedInPeople();
-  showToast(`✅ ${name} signed in`);
-});
-
-document.getElementById("signOutButton").addEventListener("click", () => {
-  const index = signOutSelect.value;
-  const people = loadSignedInPeople();
-  if (people.length > 0 && index !== "") {
-    const [removed] = people.splice(index, 1);
-    saveSignedInPeople(people);
-    renderSignedInPeople();
-    showToast(`🚪 ${removed.name} signed out`);
+  if (signedInUsers.length === 0) {
+    const noUsers = document.createElement("p");
+    noUsers.textContent = "No users are currently signed in.";
+    mainDiv.appendChild(noUsers);
+  } else {
+    const ul = document.createElement("ul");
+    signedInUsers.forEach((user) => {
+      const li = document.createElement("li");
+      li.textContent = `${user.name} (signed in at ${new Date(user.signInTime).toLocaleString()})`;
+      ul.appendChild(li);
+    });
+    mainDiv.appendChild(ul);
   }
-});
 
-// ---------------------------
-// INIT
-// ---------------------------
+  const backBtn = createButton("Back");
+  backBtn.onclick = renderMainMenu;
+  mainDiv.appendChild(backBtn);
+}
 
-renderSignedInPeople();
+// Add some basic styles and animations dynamically (optional, can also be in CSS)
+const style = document.createElement("style");
+style.textContent = `
+  body { font-family: Arial, sans-serif; text-ali
