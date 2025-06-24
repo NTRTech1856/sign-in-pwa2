@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-  <title>Sign In App</title>
+  <title>Sign In App with Firebase</title>
   <style>
-    /* Base styles */
+    /* Responsive and pretty CSS (same as before) */
     body {
       font-family: Arial, sans-serif;
       text-align: center;
@@ -81,7 +81,6 @@
       font-size: 1.8rem;
     }
 
-    /* Media Queries for smaller screens */
     @media (max-width: 600px) {
       body {
         margin: 10px;
@@ -109,8 +108,6 @@
         margin: 5px 0;
       }
     }
-
-    /* Media Queries for very small devices (e.g., older iPhones) */
     @media (max-width: 360px) {
       .btn {
         padding: 10px 16px;
@@ -133,42 +130,28 @@
 <body>
   <div id="main"></div>
 
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
   <script>
-    // Replace with your Google Apps Script Web App URL
-    const GOOGLE_SCRIPT_URL = "YOUR_WEB_APP_URL_HERE";
+    // TODO: Replace this config with your Firebase project config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
 
-    const STORAGE_KEY = "signedInUsers";
-    let signedInUsers = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-
-    function saveSignedInUsers() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(signedInUsers));
-    }
-
-    function sendToGoogleSheets(name, action) {
-      fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          action,
-          timestamp: new Date().toISOString(),
-        }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.status !== "success") {
-            console.error("Failed to log:", data.message);
-          } else {
-            console.log(`Logged ${action} for ${name} successfully.`);
-          }
-        })
-        .catch((err) => {
-          console.error("Error sending to Google Sheets:", err);
-        });
-    }
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
     const mainDiv = document.getElementById("main");
 
+    // Helper to create buttons
     function createButton(text) {
       const btn = document.createElement("button");
       btn.textContent = text;
@@ -178,6 +161,7 @@
       return btn;
     }
 
+    // Render main menu
     function renderMainMenu() {
       mainDiv.innerHTML = "";
       const title = document.createElement("h1");
@@ -196,6 +180,7 @@
       mainDiv.appendChild(viewBtn);
     }
 
+    // Render sign in form
     function renderSignInForm() {
       mainDiv.innerHTML = "";
       const label = document.createElement("label");
@@ -205,24 +190,30 @@
       input.placeholder = "Your name";
 
       const submitBtn = createButton("Sign In");
-      submitBtn.onclick = () => {
+      submitBtn.onclick = async () => {
         const name = input.value.trim();
         if (!name) {
           alert("Please enter a name.");
           return;
         }
-        if (
-          signedInUsers.find(
-            (u) => u.name.toLowerCase() === name.toLowerCase()
-          )
-        ) {
+
+        // Check if already signed in
+        const existingUser = await db.collection("signedInUsers")
+          .where("nameLower", "==", name.toLowerCase())
+          .get();
+
+        if (!existingUser.empty) {
           alert("You are already signed in.");
           return;
         }
-        const newUser = { name, signInTime: new Date().toISOString() };
-        signedInUsers.push(newUser);
-        saveSignedInUsers();
-        sendToGoogleSheets(name, "signIn");
+
+        // Add new signed in user
+        await db.collection("signedInUsers").add({
+          name: name,
+          nameLower: name.toLowerCase(),
+          signInTime: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
         alert(`Welcome, ${name}! You are signed in.`);
         renderMainMenu();
       };
@@ -238,36 +229,38 @@
       input.focus();
     }
 
-    function renderSignOutList() {
+    // Render sign out list
+    async function renderSignOutList() {
       mainDiv.innerHTML = "";
       const title = document.createElement("h2");
       title.textContent = "Select a user to sign out:";
       mainDiv.appendChild(title);
 
-      if (signedInUsers.length === 0) {
+      const snapshot = await db.collection("signedInUsers").orderBy("signInTime").get();
+
+      if (snapshot.empty) {
         const noUsers = document.createElement("p");
         noUsers.textContent = "No users are currently signed in.";
         mainDiv.appendChild(noUsers);
       } else {
         const ul = document.createElement("ul");
-        signedInUsers.forEach((user, index) => {
+
+        snapshot.forEach(doc => {
+          const user = doc.data();
           const li = document.createElement("li");
-          li.textContent = `${user.name} (signed in at ${new Date(
-            user.signInTime
-          ).toLocaleTimeString()})`;
-          li.style.cursor = "pointer";
+          const timeStr = user.signInTime ? user.signInTime.toDate().toLocaleTimeString() : 'unknown time';
+          li.textContent = `${user.name} (signed in at ${timeStr})`;
           li.className = "signout-user";
-          li.onclick = () => {
+          li.onclick = async () => {
             if (confirm(`Sign out ${user.name}?`)) {
-              signedInUsers.splice(index, 1);
-              saveSignedInUsers();
-              sendToGoogleSheets(user.name, "signOut");
+              await db.collection("signedInUsers").doc(doc.id).delete();
               alert(`${user.name} has been signed out.`);
               renderSignOutList();
             }
           };
           ul.appendChild(li);
         });
+
         mainDiv.appendChild(ul);
       }
 
@@ -276,23 +269,26 @@
       mainDiv.appendChild(backBtn);
     }
 
-    function renderCurrentlySignedIn() {
+    // Render currently signed in users
+    async function renderCurrentlySignedIn() {
       mainDiv.innerHTML = "";
       const title = document.createElement("h2");
       title.textContent = "Currently Signed In Users:";
       mainDiv.appendChild(title);
 
-      if (signedInUsers.length === 0) {
+      const snapshot = await db.collection("signedInUsers").orderBy("signInTime").get();
+
+      if (snapshot.empty) {
         const noUsers = document.createElement("p");
         noUsers.textContent = "No users are currently signed in.";
         mainDiv.appendChild(noUsers);
       } else {
         const ul = document.createElement("ul");
-        signedInUsers.forEach((user) => {
+        snapshot.forEach(doc => {
+          const user = doc.data();
+          const timeStr = user.signInTime ? user.signInTime.toDate().toLocaleString() : 'unknown time';
           const li = document.createElement("li");
-          li.textContent = `${user.name} (signed in at ${new Date(
-            user.signInTime
-          ).toLocaleString()})`;
+          li.textContent = `${user.name} (signed in at ${timeStr})`;
           ul.appendChild(li);
         });
         mainDiv.appendChild(ul);
@@ -303,6 +299,7 @@
       mainDiv.appendChild(backBtn);
     }
 
+    // Start app
     renderMainMenu();
   </script>
 </body>
