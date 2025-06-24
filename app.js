@@ -1,5 +1,5 @@
 // Replace with your Google Apps Script Web App URL
-const GOOGLE_SCRIPT_URL = "YOUR_WEB_APP_URL_HERE";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/a/macros/newtheatreroyal.com/s/AKfycbxi66J5a9g2GZ8gAVa7anT5Yi2V270VpXvd8NPWcKsxF0mlJrXvT3auzoCHdQn5_Kh2mA/exec";
 
 // Local storage key for current signed-in users
 const STORAGE_KEY = "signedInUsers";
