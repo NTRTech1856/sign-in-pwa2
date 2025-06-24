@@ -1,288 +1,202 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-  <title>Sign In App (Local Storage)</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 20px;
-      background: #f9f9f9;
-      color: #333;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    h1, h2 {
-      color: #4CAF50;
-      margin-bottom: 1rem;
-    }
-    .btn {
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 15px 30px;
-      margin: 10px;
-      font-size: 1.2rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease, transform 0.2s ease;
-      min-width: 140px;
-      user-select: none;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .btn:hover,
-    .btn.btn-hover {
-      background: #45a049;
-      transform: scale(1.05);
-    }
-    input[type="text"] {
-      padding: 12px;
-      font-size: 1.1rem;
-      width: 80%;
-      max-width: 400px;
-      margin: 15px 0 25px 0;
-      border-radius: 6px;
-      border: 2px solid #ccc;
-      transition: border-color 0.3s ease;
-      box-sizing: border-box;
-    }
-    input[type="text"]:focus {
-      border-color: #4CAF50;
-      outline: none;
-    }
-    ul {
-      list-style-type: none;
-      padding: 0;
-      max-width: 400px;
-      margin: 0 auto 20px auto;
-    }
-    li.signout-user {
-      background: #f0f0f0;
-      padding: 12px;
-      margin: 6px 0;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      user-select: none;
-      font-size: 1.1rem;
-    }
-    li.signout-user:hover {
-      background: #d1e7dd;
-    }
-    h1 {
-      font-size: 2.4rem;
-    }
-    h2 {
-      font-size: 1.8rem;
-    }
-    @media (max-width: 600px) {
-      body {
-        margin: 10px;
-      }
-      h1 {
-        font-size: 1.8rem;
-      }
-      h2 {
-        font-size: 1.4rem;
-      }
-      .btn {
-        padding: 12px 20px;
-        font-size: 1rem;
-        min-width: 110px;
-        margin: 8px 6px;
-      }
-      input[type="text"] {
-        width: 95%;
-        font-size: 1rem;
-        margin: 12px 0 20px 0;
-      }
-      li.signout-user {
-        font-size: 1rem;
-        padding: 10px;
-        margin: 5px 0;
-      }
-    }
-    @media (max-width: 360px) {
-      .btn {
-        padding: 10px 16px;
-        font-size: 0.9rem;
-        min-width: 90px;
-        margin: 6px 4px;
-      }
-      input[type="text"] {
-        font-size: 0.95rem;
-        margin: 10px 0 15px 0;
-      }
-      li.signout-user {
-        font-size: 0.9rem;
-        padding: 8px;
-        margin: 4px 0;
-      }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sign In App with Firebase Modular SDK</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+      Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    max-width: 480px;
+    margin: 20px auto;
+    padding: 10px;
+    background: #f4f6f8;
+    color: #222;
+  }
+  h1 {
+    text-align: center;
+    color: #2c3e50;
+  }
+  button {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    margin: 8px 0;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background: #2980b9;
+  }
+  #signedInList {
+    margin-top: 10px;
+    padding-left: 20px;
+  }
+  label {
+    display: block;
+    margin-top: 12px;
+    margin-bottom: 4px;
+  }
+  input[type="text"], select {
+    width: 100%;
+    padding: 8px;
+    font-size: 16px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+  }
+  #signOutSection {
+    margin-top: 20px;
+  }
+</style>
 </head>
 <body>
-  <div id="main"></div>
+  <h1>Sign In App</h1>
 
-  <script>
-    const mainDiv = document.getElementById("main");
+  <!-- Sign In -->
+  <div id="signInSection">
+    <label for="nameInput">Enter your name to sign in:</label>
+    <input type="text" id="nameInput" placeholder="Your name" />
+    <button id="signInBtn">Sign In</button>
+  </div>
 
-    // Local storage key
-    const STORAGE_KEY = "signedInUsers";
+  <!-- Signed In Users -->
+  <div id="currentUsersSection">
+    <h3>Currently Signed In:</h3>
+    <ul id="signedInList"></ul>
+  </div>
 
-    // Load signed in users from localStorage
-    function loadUsers() {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
+  <!-- Sign Out -->
+  <div id="signOutSection">
+    <h3>Sign Out</h3>
+    <select id="signOutSelect">
+      <option value="">Select user to sign out</option>
+    </select>
+    <button id="signOutBtn">Sign Out</button>
+  </div>
+
+  <!-- Firebase Modular SDK using ES Modules -->
+  <script type="module">
+    // Import Firebase functions from CDN
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      deleteDoc,
+      doc,
+      onSnapshot,
+      query,
+      where,
+      getDocs,
+      orderBy,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    // Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBP_07YnGi79bOMY1K6mm3gHVgk2-UUb_o",
+      authDomain: "sign-in-backend-bfd1d.firebaseapp.com",
+      projectId: "sign-in-backend-bfd1d",
+      storageBucket: "sign-in-backend-bfd1d.firebasestorage.app",
+      messagingSenderId: "480221653864",
+      appId: "1:480221653864:web:02bf18eba295f8f87d04dd",
+      measurementId: "G-35MJBXS97H"
+    };
+
+    // Initialize Firebase and Firestore
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getFirestore(app);
+
+    const nameInput = document.getElementById('nameInput');
+    const signInBtn = document.getElementById('signInBtn');
+    const signedInList = document.getElementById('signedInList');
+    const signOutSelect = document.getElementById('signOutSelect');
+    const signOutBtn = document.getElementById('signOutBtn');
+
+    // Listen for real-time changes in 'signins' collection
+    function loadSignedInUsers() {
+      const signinsCol = collection(db, 'signins');
+      const q = query(signinsCol, orderBy('signInTime'));
+      onSnapshot(q, (snapshot) => {
+        signedInList.innerHTML = '';
+        signOutSelect.innerHTML = '<option value="">Select user to sign out</option>';
+
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          const id = docSnap.id;
+
+          // Add to signed-in list
+          const li = document.createElement('li');
+          li.textContent = data.name;
+          signedInList.appendChild(li);
+
+          // Add to sign out dropdown
+          const option = document.createElement('option');
+          option.value = id;
+          option.textContent = data.name;
+          signOutSelect.appendChild(option);
+        });
+      });
+    }
+
+    // Sign In function
+    async function signIn() {
+      const name = nameInput.value.trim();
+      if (!name) {
+        alert('Please enter a name.');
+        return;
+      }
+
+      // Check if user already signed in
+      const signinsCol = collection(db, 'signins');
+      const q = query(signinsCol, where('name', '==', name));
+      const existingUsers = await getDocs(q);
+      if (!existingUsers.empty) {
+        alert('This user is already signed in.');
+        return;
+      }
+
       try {
-        return JSON.parse(raw);
-      } catch {
-        return [];
+        await addDoc(signinsCol, {
+          name: name,
+          signInTime: serverTimestamp()
+        });
+        alert(`${name} signed in successfully.`);
+        nameInput.value = '';
+      } catch (error) {
+        alert('Error signing in: ' + error.message);
       }
     }
 
-    // Save signed in users to localStorage
-    function saveUsers(users) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
-    }
-
-    function createButton(text) {
-      const btn = document.createElement("button");
-      btn.textContent = text;
-      btn.className = "btn";
-      btn.addEventListener("mouseover", () => btn.classList.add("btn-hover"));
-      btn.addEventListener("mouseout", () => btn.classList.remove("btn-hover"));
-      return btn;
-    }
-
-    function renderMainMenu() {
-      mainDiv.innerHTML = "";
-      const title = document.createElement("h1");
-      title.textContent = "Sign In App";
-      mainDiv.appendChild(title);
-
-      const signInBtn = createButton("Sign In");
-      signInBtn.onclick = renderSignInForm;
-      const signOutBtn = createButton("Sign Out");
-      signOutBtn.onclick = renderSignOutList;
-      const viewBtn = createButton("View Signed In");
-      viewBtn.onclick = renderCurrentlySignedIn;
-
-      mainDiv.appendChild(signInBtn);
-      mainDiv.appendChild(signOutBtn);
-      mainDiv.appendChild(viewBtn);
-    }
-
-    function renderSignInForm() {
-      mainDiv.innerHTML = "";
-      const label = document.createElement("label");
-      label.textContent = "Enter your name:";
-      const input = document.createElement("input");
-      input.type = "text";
-      input.placeholder = "Your name";
-
-      const submitBtn = createButton("Sign In");
-      submitBtn.onclick = () => {
-        const name = input.value.trim();
-        if (!name) {
-          alert("Please enter a name.");
-          return;
-        }
-        const users = loadUsers();
-        if (users.find(u => u.name.toLowerCase() === name.toLowerCase())) {
-          alert("You are already signed in.");
-          return;
-        }
-        users.push({
-          name,
-          signInTime: new Date().toISOString()
-        });
-        saveUsers(users);
-        alert(`Welcome, ${name}! You are signed in.`);
-        renderMainMenu();
-      };
-
-      const backBtn = createButton("Back");
-      backBtn.onclick = renderMainMenu;
-
-      mainDiv.appendChild(label);
-      mainDiv.appendChild(input);
-      mainDiv.appendChild(submitBtn);
-      mainDiv.appendChild(backBtn);
-
-      input.focus();
-    }
-
-    function renderSignOutList() {
-      mainDiv.innerHTML = "";
-      const title = document.createElement("h2");
-      title.textContent = "Select a user to sign out:";
-      mainDiv.appendChild(title);
-
-      const users = loadUsers();
-
-      if (users.length === 0) {
-        const noUsers = document.createElement("p");
-        noUsers.textContent = "No users are currently signed in.";
-        mainDiv.appendChild(noUsers);
-      } else {
-        const ul = document.createElement("ul");
-
-        users.forEach((user, i) => {
-          const li = document.createElement("li");
-          const timeStr = new Date(user.signInTime).toLocaleTimeString();
-          li.textContent = `${user.name} (signed in at ${timeStr})`;
-          li.className = "signout-user";
-          li.onclick = () => {
-            if (confirm(`Sign out ${user.name}?`)) {
-              users.splice(i, 1);
-              saveUsers(users);
-              alert(`${user.name} has been signed out.`);
-              renderSignOutList();
-            }
-          };
-          ul.appendChild(li);
-        });
-
-        mainDiv.appendChild(ul);
+    // Sign Out function
+    async function signOut() {
+      const userId = signOutSelect.value;
+      if (!userId) {
+        alert('Please select a user to sign out.');
+        return;
       }
-
-      const backBtn = createButton("Back");
-      backBtn.onclick = renderMainMenu;
-      mainDiv.appendChild(backBtn);
-    }
-
-    function renderCurrentlySignedIn() {
-      mainDiv.innerHTML = "";
-      const title = document.createElement("h2");
-      title.textContent = "Currently Signed In Users:";
-      mainDiv.appendChild(title);
-
-      const users = loadUsers();
-
-      if (users.length === 0) {
-        const noUsers = document.createElement("p");
-        noUsers.textContent = "No users are currently signed in.";
-        mainDiv.appendChild(noUsers);
-      } else {
-        const ul = document.createElement("ul");
-        users.forEach(user => {
-          const timeStr = new Date(user.signInTime).toLocaleString();
-          const li = document.createElement("li");
-          li.textContent = `${user.name} (signed in at ${timeStr})`;
-          ul.appendChild(li);
-        });
-        mainDiv.appendChild(ul);
+      try {
+        await deleteDoc(doc(db, 'signins', userId));
+        alert('User signed out successfully.');
+        signOutSelect.value = '';
+      } catch (error) {
+        alert('Error signing out: ' + error.message);
       }
-
-      const backBtn = createButton("Back");
-      backBtn.onclick = renderMainMenu;
-      mainDiv.appendChild(backBtn);
     }
 
-    renderMainMenu();
+    // Event listeners
+    signInBtn.addEventListener('click', signIn);
+    signOutBtn.addEventListener('click', signOut);
+
+    // Initial load of users
+    loadSignedInUsers();
   </script>
 </body>
 </html>
