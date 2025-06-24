@@ -7,13 +7,13 @@
   <style>
     body {
       font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      background: #f5f5f5;
       padding: 20px;
       max-width: 500px;
       margin: auto;
+      transition: background 0.3s, color 0.3s;
     }
     h1, h2 {
-      color: #333;
+      margin-top: 0;
     }
     input, select, button {
       width: 100%;
@@ -27,20 +27,39 @@
       color: white;
       border: none;
       cursor: pointer;
-      transition: background 0.3s ease;
+      transition: background 0.3s ease, transform 0.2s;
     }
     button:hover {
       background: #45a049;
+      transform: scale(1.02);
     }
     ul {
       list-style: none;
       padding: 0;
     }
     li {
-      background: #fff;
+      background: var(--item-bg);
       margin: 5px 0;
       padding: 10px;
       border-radius: 5px;
+    }
+    #themeToggle {
+      background: #555;
+      margin-top: 20px;
+    }
+
+    /* Light theme */
+    body.light {
+      background: #f5f5f5;
+      color: #333;
+      --item-bg: #fff;
+    }
+
+    /* Dark theme */
+    body.dark {
+      background: #121212;
+      color: #f0f0f0;
+      --item-bg: #1e1e1e;
     }
   </style>
 </head>
@@ -60,11 +79,13 @@
   </select>
   <button id="signOutBtn">Sign Out</button>
 
+  <button id="themeToggle">Toggle Light/Dark Mode</button>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, serverTimestamp, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-    // ✅ 1) Initialize Firebase
+    // ✅ Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyBP_07YnGi79bOMY1K6mm3gHVgk2-UUb_o",
       authDomain: "sign-in-backend-bfd1d.firebaseapp.com",
@@ -83,18 +104,17 @@
     const signedInList = document.getElementById('signedInList');
     const signOutSelect = document.getElementById('signOutSelect');
     const signOutBtn = document.getElementById('signOutBtn');
+    const themeToggle = document.getElementById('themeToggle');
 
     const signinsCol = collection(db, "signins");
 
-    // ✅ 2) Daily auto-clear at 4 AM
+    // ✅ Daily auto-clear at 4 AM
     const checkAndClearDaily = async () => {
       const lastCleared = localStorage.getItem('lastClearedDate');
       const now = new Date();
       const today = now.toISOString().split('T')[0];
       const hour = now.getHours();
-
       if (hour >= 4 && lastCleared !== today) {
-        // Clear all documents
         const snapshot = await getDocs(signinsCol);
         snapshot.forEach(docSnap => {
           deleteDoc(doc(signinsCol, docSnap.id));
@@ -103,10 +123,9 @@
         console.log("Cleared at 4 AM");
       }
     };
-
     checkAndClearDaily();
 
-    // ✅ 3) Sign In
+    // ✅ Sign In
     signInBtn.onclick = async () => {
       const name = nameInput.value.trim();
       if (!name) return alert("Please enter a name");
@@ -117,7 +136,7 @@
       nameInput.value = "";
     };
 
-    // ✅ 4) Sign Out + auto-close select
+    // ✅ Sign Out + auto-close select
     signOutBtn.onclick = async () => {
       const id = signOutSelect.value;
       if (!id) return alert("Please select a name to sign out");
@@ -125,7 +144,7 @@
       signOutSelect.value = "";
     };
 
-    // ✅ 5) Live updates
+    // ✅ Live updates
     onSnapshot(query(signinsCol, orderBy('signInTime')), snapshot => {
       signedInList.innerHTML = "";
       signOutSelect.innerHTML = '<option value="">Select person</option>';
@@ -141,6 +160,22 @@
         signOutSelect.appendChild(option);
       });
     });
+
+    // ✅ Light/Dark Theme Toggle
+    const setTheme = (theme) => {
+      document.body.className = theme;
+      localStorage.setItem('theme', theme);
+    };
+
+    // Load saved theme or default to light
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+
+    themeToggle.onclick = () => {
+      const current = document.body.className;
+      const newTheme = current === 'light' ? 'dark' : 'light';
+      setTheme(newTheme);
+    };
   </script>
 </body>
 </html>
