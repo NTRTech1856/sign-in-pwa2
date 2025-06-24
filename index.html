@@ -1,12 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign In PWA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In App</title>
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+
 </head>
-<body class="bg-gray-100 p-6">
-  <h1 class="text-2xl font-bold mb-4">Hello! This is a test.</h1>
+<body class="h-full bg-gray-100 text-gray-800 flex flex-col items-center justify-start p-4">
+  <h1 class="text-3xl font-bold mb-6">Sign In App</h1>
+
+  <div class="space-x-4 mb-8">
+    <button onclick="showSignInForm()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Sign In</button>
+    <button onclick="showSignOutList()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Sign Out</button>
+  </div>
+
+  <!-- Sign In Form -->
+  <div id="formContainer" class="bg-white shadow p-6 rounded w-full max-w-sm mb-6 hidden">
+    <h2 class="text-xl font-semibold mb-4">Sign In</h2>
+    <input id="nameInput" placeholder="Enter your name" class="w-full border p-2 mb-4 rounded" />
+    <div class="flex justify-between">
+      <button onclick="signIn()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Submit</button>
+      <button onclick="hideForm()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Sign Out List -->
+  <div id="signOutContainer" class="bg-white shadow p-6 rounded w-full max-w-sm mb-6 hidden">
+    <h2 class="text-xl font-semibold mb-4">Sign Out</h2>
+    <ul id="signOutList" class="space-y-2"></ul>
+    <button onclick="hideSignOut()" class="mt-4 px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 w-full">Close</button>
+  </div>
+
+  <h2 class="text-xl font-semibold mb-4">Currently Signed In</h2>
+  <ul id="signedInList" class="w-full max-w-md bg-white shadow p-4 rounded space-y-2"></ul>
+
+  <script src="app.js"></script>
 </body>
 </html>
