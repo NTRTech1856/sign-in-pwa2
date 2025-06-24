@@ -1,104 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sign In App with Firebase Modular SDK</title>
-<style>
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-      Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-    max-width: 480px;
-    margin: 20px auto;
-    padding: 10px;
-    background: #f4f6f8;
-    color: #222;
-  }
-  h1 {
-    text-align: center;
-    color: #2c3e50;
-  }
-  button {
-    background: #3498db;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    margin: 8px 0;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  button:hover {
-    background: #2980b9;
-  }
-  #signedInList {
-    margin-top: 10px;
-    padding-left: 20px;
-  }
-  label {
-    display: block;
-    margin-top: 12px;
-    margin-bottom: 4px;
-  }
-  input[type="text"], select {
-    width: 100%;
-    padding: 8px;
-    font-size: 16px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
-  }
-  #signOutSection {
-    margin-top: 20px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <title>Sign In App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      background: #fff;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
   <h1>Sign In App</h1>
 
-  <!-- Sign In -->
-  <div id="signInSection">
-    <label for="nameInput">Enter your name to sign in:</label>
-    <input type="text" id="nameInput" placeholder="Your name" />
-    <button id="signInBtn">Sign In</button>
-  </div>
+  <h2>Sign In</h2>
+  <input id="nameInput" placeholder="Enter name" />
+  <button id="signInBtn">Sign In</button>
 
-  <!-- Signed In Users -->
-  <div id="currentUsersSection">
-    <h3>Currently Signed In:</h3>
-    <ul id="signedInList"></ul>
-  </div>
+  <h2>Currently Signed In</h2>
+  <ul id="signedInList"></ul>
 
-  <!-- Sign Out -->
-  <div id="signOutSection">
-    <h3>Sign Out</h3>
-    <select id="signOutSelect">
-      <option value="">Select user to sign out</option>
-    </select>
-    <button id="signOutBtn">Sign Out</button>
-  </div>
+  <h2>Sign Out</h2>
+  <select id="signOutSelect">
+    <option value="">Select person</option>
+  </select>
+  <button id="signOutBtn">Sign Out</button>
 
-  <!-- Firebase Modular SDK using ES Modules -->
   <script type="module">
-    // Import Firebase functions from CDN
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js";
-    import {
-      getFirestore,
-      collection,
-      addDoc,
-      deleteDoc,
-      doc,
-      onSnapshot,
-      query,
-      where,
-      getDocs,
-      orderBy,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, serverTimestamp, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-    // Your Firebase config
+    // ✅ 1) Initialize Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBP_07YnGi79bOMY1K6mm3gHVgk2-UUb_o",
       authDomain: "sign-in-backend-bfd1d.firebaseapp.com",
@@ -109,9 +75,7 @@
       measurementId: "G-35MJBXS97H"
     };
 
-    // Initialize Firebase and Firestore
     const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
     const db = getFirestore(app);
 
     const nameInput = document.getElementById('nameInput');
@@ -120,83 +84,63 @@
     const signOutSelect = document.getElementById('signOutSelect');
     const signOutBtn = document.getElementById('signOutBtn');
 
-    // Listen for real-time changes in 'signins' collection
-    function loadSignedInUsers() {
-      const signinsCol = collection(db, 'signins');
-      const q = query(signinsCol, orderBy('signInTime'));
-      onSnapshot(q, (snapshot) => {
-        signedInList.innerHTML = '';
-        signOutSelect.innerHTML = '<option value="">Select user to sign out</option>';
+    const signinsCol = collection(db, "signins");
 
+    // ✅ 2) Daily auto-clear at 4 AM
+    const checkAndClearDaily = async () => {
+      const lastCleared = localStorage.getItem('lastClearedDate');
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      const hour = now.getHours();
+
+      if (hour >= 4 && lastCleared !== today) {
+        // Clear all documents
+        const snapshot = await getDocs(signinsCol);
         snapshot.forEach(docSnap => {
-          const data = docSnap.data();
-          const id = docSnap.id;
-
-          // Add to signed-in list
-          const li = document.createElement('li');
-          li.textContent = data.name;
-          signedInList.appendChild(li);
-
-          // Add to sign out dropdown
-          const option = document.createElement('option');
-          option.value = id;
-          option.textContent = data.name;
-          signOutSelect.appendChild(option);
+          deleteDoc(doc(signinsCol, docSnap.id));
         });
-      });
-    }
+        localStorage.setItem('lastClearedDate', today);
+        console.log("Cleared at 4 AM");
+      }
+    };
 
-    // Sign In function
-    async function signIn() {
+    checkAndClearDaily();
+
+    // ✅ 3) Sign In
+    signInBtn.onclick = async () => {
       const name = nameInput.value.trim();
-      if (!name) {
-        alert('Please enter a name.');
-        return;
-      }
+      if (!name) return alert("Please enter a name");
+      await addDoc(signinsCol, {
+        name: name,
+        signInTime: serverTimestamp()
+      });
+      nameInput.value = "";
+    };
 
-      // Check if user already signed in
-      const signinsCol = collection(db, 'signins');
-      const q = query(signinsCol, where('name', '==', name));
-      const existingUsers = await getDocs(q);
-      if (!existingUsers.empty) {
-        alert('This user is already signed in.');
-        return;
-      }
+    // ✅ 4) Sign Out + auto-close select
+    signOutBtn.onclick = async () => {
+      const id = signOutSelect.value;
+      if (!id) return alert("Please select a name to sign out");
+      await deleteDoc(doc(signinsCol, id));
+      signOutSelect.value = "";
+    };
 
-      try {
-        await addDoc(signinsCol, {
-          name: name,
-          signInTime: serverTimestamp()
-        });
-        alert(`${name} signed in successfully.`);
-        nameInput.value = '';
-      } catch (error) {
-        alert('Error signing in: ' + error.message);
-      }
-    }
-
-    // Sign Out function
-    async function signOut() {
-      const userId = signOutSelect.value;
-      if (!userId) {
-        alert('Please select a user to sign out.');
-        return;
-      }
-      try {
-        await deleteDoc(doc(db, 'signins', userId));
-        alert('User signed out successfully.');
-        signOutSelect.value = '';
-      } catch (error) {
-        alert('Error signing out: ' + error.message);
-      }
-    }
-
-    // Event listeners
-    signInBtn.addEventListener('click', signIn);
-    signOutBtn.addEventListener('click', signOut);
-
-    // Initial load of users
-    loadSignedInUsers();
+    // ✅ 5) Live updates
+    onSnapshot(query(signinsCol, orderBy('signInTime')), snapshot => {
+      signedInList.innerHTML = "";
+      signOutSelect.innerHTML = '<option value="">Select person</option>';
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const id = docSnap.id;
+        const li = document.createElement("li");
+        li.textContent = data.name;
+        signedInList.appendChild(li);
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = data.name;
+        signOutSelect.appendChild(option);
+      });
+    });
   </script>
 </body>
 </html>
