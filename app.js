@@ -2,33 +2,22 @@
 // CONFIG
 // ---------------------------
 
-// LocalStorage keys
 const SIGNED_IN_KEY = "signedInPeople";
 const LAST_RESET_KEY = "lastResetDate";
-
-// Daily reset time (24h format)
-// E.g., 6 means reset at 6:00 AM local time
-const RESET_HOUR = 4;
+const RESET_HOUR = 6; // Daily reset hour
 
 // ---------------------------
 // DATA HELPERS
 // ---------------------------
 
-// Load signed in people from localStorage
 function loadSignedInPeople() {
   return JSON.parse(localStorage.getItem(SIGNED_IN_KEY)) || [];
 }
 
-// Save signed in people to localStorage
 function saveSignedInPeople(people) {
   localStorage.setItem(SIGNED_IN_KEY, JSON.stringify(people));
 }
 
-// ---------------------------
-// DAILY RESET LOGIC
-// ---------------------------
-
-// Check if daily reset is needed at specified hour
 function checkTimedReset() {
   const now = new Date();
   const today = now.toISOString().split("T")[0];
@@ -38,13 +27,26 @@ function checkTimedReset() {
     localStorage.setItem(SIGNED_IN_KEY, JSON.stringify([]));
     localStorage.setItem(LAST_RESET_KEY, today);
     console.log(`✅ Timed reset done at ${now.toLocaleTimeString()}`);
-  } else {
-    console.log("No reset needed yet");
   }
 }
 
-// Run reset check immediately when app loads
 checkTimedReset();
+
+// ---------------------------
+// TOAST UTILITY
+// ---------------------------
+
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.remove("opacity-0");
+  toast.classList.add("opacity-100");
+
+  setTimeout(() => {
+    toast.classList.remove("opacity-100");
+    toast.classList.add("opacity-0");
+  }, 2000);
+}
 
 // ---------------------------
 // UI ELEMENTS
@@ -59,16 +61,22 @@ const signOutSelect = document.getElementById("signOutSelect");
 // UI HANDLERS
 // ---------------------------
 
-// Render the list of signed in people
 function renderSignedInPeople() {
   const people = loadSignedInPeople();
   signedInList.innerHTML = "";
-  signOutSelect.innerHTML = "";
+  signOutSelect.innerHTML = '<option value="">Select name to sign out</option>';
 
   people.forEach((person, index) => {
     const li = document.createElement("li");
-    li.textContent = `${person.name} - Signed in at ${new Date(person.timestamp).toLocaleTimeString()}`;
+    li.textContent = `${person.name} - ${new Date(person.timestamp).toLocaleTimeString()}`;
+    li.className = "bg-white dark:bg-gray-700 p-3 rounded-lg shadow transition-opacity duration-500 opacity-0";
     signedInList.appendChild(li);
+
+    // Fade in effect
+    setTimeout(() => {
+      li.classList.remove("opacity-0");
+      li.classList.add("opacity-100");
+    }, 10);
 
     const option = document.createElement("option");
     option.value = index;
@@ -77,7 +85,6 @@ function renderSignedInPeople() {
   });
 }
 
-// Sign in handler
 signInForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const name = signInNameInput.value.trim();
@@ -91,16 +98,17 @@ signInForm.addEventListener("submit", (e) => {
   saveSignedInPeople(people);
   signInNameInput.value = "";
   renderSignedInPeople();
+  showToast(`✅ ${name} signed in`);
 });
 
-// Sign out handler
 document.getElementById("signOutButton").addEventListener("click", () => {
   const index = signOutSelect.value;
   const people = loadSignedInPeople();
   if (people.length > 0 && index !== "") {
-    people.splice(index, 1);
+    const [removed] = people.splice(index, 1);
     saveSignedInPeople(people);
     renderSignedInPeople();
+    showToast(`🚪 ${removed.name} signed out`);
   }
 });
 
