@@ -1,63 +1,111 @@
-let signedInUsers = JSON.parse(localStorage.getItem('signedInUsers')) || [];
+// ---------------------------
+// CONFIG
+// ---------------------------
 
-function updateUI() {
-  const list = document.getElementById('signedInList');
-  list.innerHTML = '';
-  signedInUsers.forEach(user => {
-    const li = document.createElement('li');
-    li.className = "p-3 bg-gray-50 rounded shadow-sm";
-    li.textContent = `${user.name} (Signed in at: ${new Date(user.time).toLocaleTimeString()})`;
-    list.appendChild(li);
-  });
-  localStorage.setItem('signedInUsers', JSON.stringify(signedInUsers));
+// LocalStorage keys
+const SIGNED_IN_KEY = "signedInPeople";
+const LAST_RESET_KEY = "lastResetDate";
+
+// Daily reset time (24h format)
+// E.g., 6 means reset at 6:00 AM local time
+const RESET_HOUR = 4;
+
+// ---------------------------
+// DATA HELPERS
+// ---------------------------
+
+// Load signed in people from localStorage
+function loadSignedInPeople() {
+  return JSON.parse(localStorage.getItem(SIGNED_IN_KEY)) || [];
 }
 
-function showSignInForm() {
-  document.getElementById('formContainer').style.display = 'block';
+// Save signed in people to localStorage
+function saveSignedInPeople(people) {
+  localStorage.setItem(SIGNED_IN_KEY, JSON.stringify(people));
 }
 
-function hideForm() {
-  document.getElementById('formContainer').style.display = 'none';
-  document.getElementById('nameInput').value = '';
-}
+// ---------------------------
+// DAILY RESET LOGIC
+// ---------------------------
 
-function signIn() {
-  const name = document.getElementById('nameInput').value.trim();
-  if (name) {
-    signedInUsers.push({ name: name, time: Date.now() });
-    updateUI();
-    hideForm();
+// Check if daily reset is needed at specified hour
+function checkTimedReset() {
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
+  const lastReset = localStorage.getItem(LAST_RESET_KEY);
+
+  if (lastReset !== today && now.getHours() >= RESET_HOUR) {
+    localStorage.setItem(SIGNED_IN_KEY, JSON.stringify([]));
+    localStorage.setItem(LAST_RESET_KEY, today);
+    console.log(`✅ Timed reset done at ${now.toLocaleTimeString()}`);
+  } else {
+    console.log("No reset needed yet");
   }
 }
 
-function showSignOutList() {
-  const list = document.getElementById('signOutList');
-  list.innerHTML = '';
-  signedInUsers.forEach((user, index) => {
-    const li = document.createElement('li');
-    li.className = "flex justify-between items-center bg-gray-50 p-2 rounded shadow-sm";
-    li.textContent = user.name;
-    const btn = document.createElement('button');
-    btn.textContent = 'Sign Out';
-    btn.className = "ml-4 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700";
-    btn.onclick = () => {
-      signedInUsers.splice(index, 1);
-      updateUI();
-      showSignOutList();
-    };
-    li.appendChild(btn);
-    list.appendChild(li);
+// Run reset check immediately when app loads
+checkTimedReset();
+
+// ---------------------------
+// UI ELEMENTS
+// ---------------------------
+
+const signInForm = document.getElementById("signInForm");
+const signInNameInput = document.getElementById("signInName");
+const signedInList = document.getElementById("signedInList");
+const signOutSelect = document.getElementById("signOutSelect");
+
+// ---------------------------
+// UI HANDLERS
+// ---------------------------
+
+// Render the list of signed in people
+function renderSignedInPeople() {
+  const people = loadSignedInPeople();
+  signedInList.innerHTML = "";
+  signOutSelect.innerHTML = "";
+
+  people.forEach((person, index) => {
+    const li = document.createElement("li");
+    li.textContent = `${person.name} - Signed in at ${new Date(person.timestamp).toLocaleTimeString()}`;
+    signedInList.appendChild(li);
+
+    const option = document.createElement("option");
+    option.value = index;
+    option.textContent = person.name;
+    signOutSelect.appendChild(option);
   });
-  document.getElementById('signOutContainer').style.display = 'block';
 }
 
-function hideSignOut() {
-  document.getElementById('signOutContainer').style.display = 'none';
-}
+// Sign in handler
+signInForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = signInNameInput.value.trim();
+  if (name === "") return;
 
-updateUI();
+  const people = loadSignedInPeople();
+  people.push({
+    name,
+    timestamp: new Date().toISOString(),
+  });
+  saveSignedInPeople(people);
+  signInNameInput.value = "";
+  renderSignedInPeople();
+});
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js')
-    .then(() => console.log('Service Worker registered.'));
-}
+// Sign out handler
+document.getElementById("signOutButton").addEventListener("click", () => {
+  const index = signOutSelect.value;
+  const people = loadSignedInPeople();
+  if (people.length > 0 && index !== "") {
+    people.splice(index, 1);
+    saveSignedInPeople(people);
+    renderSignedInPeople();
+  }
+});
+
+// ---------------------------
+// INIT
+// ---------------------------
+
+renderSignedInPeople();
