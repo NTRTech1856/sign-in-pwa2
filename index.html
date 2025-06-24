@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-  <title>Sign In App with Firebase</title>
+  <title>Sign In App (Local Storage)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -126,26 +126,27 @@
 <body>
   <div id="main"></div>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyC_v0HgNTg5_MloHh56_wc0KC-Gu3xe7oo",
-      authDomain: "sign-in-back-end.firebaseapp.com",
-      projectId: "sign-in-back-end",
-      storageBucket: "sign-in-back-end.firebasestorage.app",
-      messagingSenderId: "736247402253",
-      appId: "1:736247402253:web:32613bea764ee87587aa44",
-      measurementId: "G-T8R0BJGHRD"
-    };
-
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
     const mainDiv = document.getElementById("main");
+
+    // Local storage key
+    const STORAGE_KEY = "signedInUsers";
+
+    // Load signed in users from localStorage
+    function loadUsers() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return [];
+      }
+    }
+
+    // Save signed in users to localStorage
+    function saveUsers(users) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+    }
 
     function createButton(text) {
       const btn = document.createElement("button");
@@ -183,28 +184,22 @@
       input.placeholder = "Your name";
 
       const submitBtn = createButton("Sign In");
-      submitBtn.onclick = async () => {
+      submitBtn.onclick = () => {
         const name = input.value.trim();
         if (!name) {
           alert("Please enter a name.");
           return;
         }
-
-        const existingUser = await db.collection("signedInUsers")
-          .where("nameLower", "==", name.toLowerCase())
-          .get();
-
-        if (!existingUser.empty) {
+        const users = loadUsers();
+        if (users.find(u => u.name.toLowerCase() === name.toLowerCase())) {
           alert("You are already signed in.");
           return;
         }
-
-        await db.collection("signedInUsers").add({
-          name: name,
-          nameLower: name.toLowerCase(),
-          signInTime: firebase.firestore.FieldValue.serverTimestamp()
+        users.push({
+          name,
+          signInTime: new Date().toISOString()
         });
-
+        saveUsers(users);
         alert(`Welcome, ${name}! You are signed in.`);
         renderMainMenu();
       };
@@ -220,30 +215,30 @@
       input.focus();
     }
 
-    async function renderSignOutList() {
+    function renderSignOutList() {
       mainDiv.innerHTML = "";
       const title = document.createElement("h2");
       title.textContent = "Select a user to sign out:";
       mainDiv.appendChild(title);
 
-      const snapshot = await db.collection("signedInUsers").orderBy("signInTime").get();
+      const users = loadUsers();
 
-      if (snapshot.empty) {
+      if (users.length === 0) {
         const noUsers = document.createElement("p");
         noUsers.textContent = "No users are currently signed in.";
         mainDiv.appendChild(noUsers);
       } else {
         const ul = document.createElement("ul");
 
-        snapshot.forEach(doc => {
-          const user = doc.data();
+        users.forEach((user, i) => {
           const li = document.createElement("li");
-          const timeStr = user.signInTime ? user.signInTime.toDate().toLocaleTimeString() : 'unknown time';
+          const timeStr = new Date(user.signInTime).toLocaleTimeString();
           li.textContent = `${user.name} (signed in at ${timeStr})`;
           li.className = "signout-user";
-          li.onclick = async () => {
+          li.onclick = () => {
             if (confirm(`Sign out ${user.name}?`)) {
-              await db.collection("signedInUsers").doc(doc.id).delete();
+              users.splice(i, 1);
+              saveUsers(users);
               alert(`${user.name} has been signed out.`);
               renderSignOutList();
             }
@@ -259,23 +254,22 @@
       mainDiv.appendChild(backBtn);
     }
 
-    async function renderCurrentlySignedIn() {
+    function renderCurrentlySignedIn() {
       mainDiv.innerHTML = "";
       const title = document.createElement("h2");
       title.textContent = "Currently Signed In Users:";
       mainDiv.appendChild(title);
 
-      const snapshot = await db.collection("signedInUsers").orderBy("signInTime").get();
+      const users = loadUsers();
 
-      if (snapshot.empty) {
+      if (users.length === 0) {
         const noUsers = document.createElement("p");
         noUsers.textContent = "No users are currently signed in.";
         mainDiv.appendChild(noUsers);
       } else {
         const ul = document.createElement("ul");
-        snapshot.forEach(doc => {
-          const user = doc.data();
-          const timeStr = user.signInTime ? user.signInTime.toDate().toLocaleString() : 'unknown time';
+        users.forEach(user => {
+          const timeStr = new Date(user.signInTime).toLocaleString();
           const li = document.createElement("li");
           li.textContent = `${user.name} (signed in at ${timeStr})`;
           ul.appendChild(li);
