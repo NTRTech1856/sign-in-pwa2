@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
   <title>Sign In App with Firebase</title>
   <style>
-    /* Responsive and pretty CSS (same as before) */
     body {
       font-family: Arial, sans-serif;
       text-align: center;
@@ -72,15 +71,12 @@
     li.signout-user:hover {
       background: #d1e7dd;
     }
-
-    /* Responsive typography */
     h1 {
       font-size: 2.4rem;
     }
     h2 {
       font-size: 1.8rem;
     }
-
     @media (max-width: 600px) {
       body {
         margin: 10px;
@@ -135,14 +131,14 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <script>
-    // TODO: Replace this config with your Firebase project config
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyC_v0HgNTg5_MloHh56_wc0KC-Gu3xe7oo",
+      authDomain: "sign-in-back-end.firebaseapp.com",
+      projectId: "sign-in-back-end",
+      storageBucket: "sign-in-back-end.firebasestorage.app",
+      messagingSenderId: "736247402253",
+      appId: "1:736247402253:web:32613bea764ee87587aa44",
+      measurementId: "G-T8R0BJGHRD"
     };
 
     // Initialize Firebase
@@ -151,7 +147,6 @@
 
     const mainDiv = document.getElementById("main");
 
-    // Helper to create buttons
     function createButton(text) {
       const btn = document.createElement("button");
       btn.textContent = text;
@@ -161,7 +156,6 @@
       return btn;
     }
 
-    // Render main menu
     function renderMainMenu() {
       mainDiv.innerHTML = "";
       const title = document.createElement("h1");
@@ -180,7 +174,6 @@
       mainDiv.appendChild(viewBtn);
     }
 
-    // Render sign in form
     function renderSignInForm() {
       mainDiv.innerHTML = "";
       const label = document.createElement("label");
@@ -197,7 +190,6 @@
           return;
         }
 
-        // Check if already signed in
         const existingUser = await db.collection("signedInUsers")
           .where("nameLower", "==", name.toLowerCase())
           .get();
@@ -207,7 +199,6 @@
           return;
         }
 
-        // Add new signed in user
         await db.collection("signedInUsers").add({
           name: name,
           nameLower: name.toLowerCase(),
@@ -229,7 +220,6 @@
       input.focus();
     }
 
-    // Render sign out list
     async function renderSignOutList() {
       mainDiv.innerHTML = "";
       const title = document.createElement("h2");
@@ -269,7 +259,6 @@
       mainDiv.appendChild(backBtn);
     }
 
-    // Render currently signed in users
     async function renderCurrentlySignedIn() {
       mainDiv.innerHTML = "";
       const title = document.createElement("h2");
@@ -299,7 +288,6 @@
       mainDiv.appendChild(backBtn);
     }
 
-    // Start app
     renderMainMenu();
   </script>
 </body>
