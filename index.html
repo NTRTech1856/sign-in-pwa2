@@ -11,14 +11,14 @@
       margin: 0;
       font-family: "Segoe UI", Roboto, sans-serif;
       background-color: #f4f4f4;
-      color: #222;
+      color: #00B0B9;
       transition: background-color 0.3s ease, color 0.3s ease;
     }
 
     @media (prefers-color-scheme: dark) {
       body {
         background-color: #121212;
-        color: #f0f0f0;
+        color: #00B0B9;
       }
     }
 
@@ -62,33 +62,34 @@
 
     h1 {
       font-size: 2rem;
+      color: #00B0B9;
     }
 
     button {
-      padding: 10px 20px;
+      padding: 12px 24px;
       font-size: 1rem;
       margin: 10px;
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      background-color: #007bff;
+      background-color: #FF585D;
       color: white;
       transition: background-color 0.3s ease, transform 0.2s;
     }
 
     button:hover {
-      background-color: #0056b3;
+      background-color: #e04b50;
       transform: scale(1.05);
     }
 
     @media (prefers-color-scheme: dark) {
       button {
-        background-color: #339af0;
-        color: #000;
+        background-color: #FF585D;
+        color: white;
       }
 
       button:hover {
-        background-color: #1c7ed6;
+        background-color: #e04b50;
       }
     }
   </style>
@@ -106,7 +107,7 @@
     <button onclick="viewSignedIn()">View Signed In</button>
   </div>
 
-  <!-- Your app logic -->
+  <!-- App Logic -->
   <script src="app.js"></script>
 </body>
 </html>
