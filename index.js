@@ -6,7 +6,7 @@ const db = admin.firestore();
 
 // Scheduled function runs every day at 4 AM in your specified timezone
 exports.scheduledClear = functions.pubsub.schedule('0 4 * * *')
-  .timeZone('Etc/UTC') // Change this to your timezone, e.g. 'America/New_York'
+  .timeZone('London/UK') // Change this to your timezone, e.g. 'America/New_York'
   .onRun(async (context) => {
     console.log('Running scheduled clear of signedInUsers collection at 4 AM');
 
