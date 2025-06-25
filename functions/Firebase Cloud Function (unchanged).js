@@ -6,7 +6,7 @@ const db = admin.firestore();
 
 exports.clearSignedInUsersDaily = functions.pubsub
   .schedule("0 4 * * *") // 4 AM daily UTC, change timezone below
-  .timeZone("YOUR_TIMEZONE") // e.g. "America/New_York"
+  .timeZone("Europe/London") // e.g. "America/New_York"
   .onRun(async () => {
     const snapshot = await db.collection("signedInUsers").get();
     const batch = db.batch();
