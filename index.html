@@ -82,15 +82,9 @@
       transform: scale(1.05);
     }
 
-    @media (prefers-color-scheme: dark) {
-      button {
-        background-color: #FF585D;
-        color: white;
-      }
-
-      button:hover {
-        background-color: #e04b50;
-      }
+    #signedInList {
+      margin-top: 30px;
+      font-size: 1rem;
     }
   </style>
 </head>
@@ -105,9 +99,12 @@
     <button onclick="signIn()">Sign In</button>
     <button onclick="signOut()">Sign Out</button>
     <button onclick="viewSignedIn()">View Signed In</button>
+    <div id="signedInList"></div>
   </div>
 
-  <!-- App Logic -->
-  <script src="app.js"></script>
+  <!-- Firebase SDKs -->
+  <script type="module" src="app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </body>
 </html>
